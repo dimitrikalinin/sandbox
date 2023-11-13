@@ -7,6 +7,7 @@
 /vendor
 /volumes
 /storage
+/nbproject
 .env
 .env.backup
 .env.production
