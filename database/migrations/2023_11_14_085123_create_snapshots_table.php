@@ -14,9 +14,17 @@ return new class extends Migration
             $table->unsignedInteger('aggregate_version');
             $table->jsonb('state');
 
-            $table->timestamps();
+            $table->timestamps(6);
 
             $table->index('aggregate_uuid');
         });
+    }
+    
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('snapshots');
     }
 };
