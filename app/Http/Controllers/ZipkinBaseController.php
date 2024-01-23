@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 use App\Services\ZipkinService;
+use App\Facades\Zipkin;
 use Zipkin\Timestamp;
 
 class ZipkinBaseController extends Controller
@@ -22,19 +23,18 @@ class ZipkinBaseController extends Controller
 
     public function callAction($method, $parameters)
     {
-        if (is_null($this->zipkinService->getRootSpan())) {
+        if (is_null(Zipkin::getRootSpan())) {
             return parent::callAction($method, $parameters);
         }
 
         $classCaller = get_called_class();
         $className   = Arr::last(explode("\\", $classCaller));
 
-        $tracing = $this->zipkinService->createTracing($className, Request::getClientip());
+        $tracing = Zipkin::createTracing($className, Request::getClientip());
         $tracer  = $tracing->getTracer();
 
-        $this->span = $tracer->nextSpan($this->zipkinService->getRootSpanContext());
+        $this->span = Zipkin::createChild($method);
         $this->span->annotate("Start", Timestamp\now());
-        $this->span->setName($method);
         $this->span->start(Timestamp\now());
         $this->span->tag("class", $classCaller);
         $this->span->tag("method", $method);
@@ -45,6 +45,7 @@ class ZipkinBaseController extends Controller
         $this->span->annotate("End", Timestamp\now());
         $this->span->finish(Timestamp\now());
         $tracer->flush();
+        Zipkin::closeCurrentSpan();
 
         return $action;
     }
