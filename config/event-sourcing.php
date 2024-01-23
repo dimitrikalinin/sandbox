@@ -23,6 +23,7 @@ return [
      */
     'projectors' => [
         // App\Projectors\YourProjector::class
+        App\Projectors\UserProjector::class,
     ],
 
     /*

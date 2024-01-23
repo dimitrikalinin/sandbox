@@ -30,6 +30,7 @@ class ZipkinService
     private $tracing;
     private $tracer;
     private $rootSpan = null;
+    private $spanStack = [];
 
     public function __construct()
     {
@@ -56,7 +57,24 @@ class ZipkinService
     public function setRootSpan($span)
     {
         $this->rootSpan = $span;
+        $this->spanStack = [$span];
         return $this;
+    }
+    
+    public function setCurrentSpan($span)
+    {
+        array_push($this->spanStack, $span);
+        return $this;
+    }
+    
+    public function closeCurrentSpan(bool $autofinish = false)
+    {
+        $span = array_pop($this->spanStack);
+        if ($autofinish) {
+            $span->finish(Timestamp\now());
+        }
+        
+        return $span;
     }
 
     public function createRootSpan(string $name, array $tags = [])
@@ -69,6 +87,8 @@ class ZipkinService
         $this->rootSpan->start(Timestamp\now());
         $this->rootSpan->setName($name);
         $this->rootSpan->setKind(SERVER);
+        
+        $this->spanStack = [$this->rootSpan];
 
         foreach ($tags as $key => $value) {
             $this->setRootSpanTag($key, $value);
@@ -81,7 +101,13 @@ class ZipkinService
     {
         return $this->rootSpan;
     }
-
+    
+    public function getCurrentSpan(): ?Span
+    {
+        return end($this->spanStack);
+    }    
+        
+        
     public function getAllowedMethods()
     {
         return $this->config['allowed_methods'];
@@ -128,13 +154,20 @@ class ZipkinService
         return $this->rootSpan->getContext();
     }
 
+    /**
+     * 
+     * @param string $name
+     * @param bool $autostart
+     * @return Span|null
+     */
     public function createChild(string $name, bool $autostart = false): ?Span
     {
-        $span = $this->tracer->newChild($this->rootSpan->getContext());
+        $span = $this->tracer->newChild(end($this->spanStack)->getContext());
         $span->setName($name);
         if ($autostart) {
             $span->start(Timestamp\now());
         }
+        array_push($this->spanStack, $span);
 
         return $span;
     }

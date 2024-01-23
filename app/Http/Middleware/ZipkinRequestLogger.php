@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Support\Facades\Auth;
 use App\Services\ZipkinService;
 use Illuminate\Support\Facades\Log;
+use App\Facades\Zipkin;
 
 
 class ZipkinRequestLogger
@@ -27,7 +28,7 @@ class ZipkinRequestLogger
     public function handle($request, Closure $next)
     {
 
-        if (in_array($request->method(), $this->zipkinService->getAllowedMethods())) {
+        if (in_array($request->method(), Zipkin::getAllowedMethods())) {
             Log::debug(
                 'route name',
                 [
@@ -36,13 +37,13 @@ class ZipkinRequestLogger
                 ]
             );
 
-            $this->zipkinService->setTracer($request->route()->getName(), $request->ip());
+            Zipkin::setTracer($request->route()->getName(), $request->ip());
 
             foreach ($request->query() as $key => $value) {
                 $tags["query." . $key] = $value;
             }
 
-            $this->zipkinService->createRootSpan('incoming_request', ($tags ?? []))
+            Zipkin::createRootSpan('incoming_request', ($tags ?? []))
                 ->setRootSpanMethod($request->method())
                 ->setRootSpanPath($request->path())
                 ->setRootAuthUser(Auth::user())
@@ -56,8 +57,8 @@ class ZipkinRequestLogger
     public function terminate($request, $response)
     {
 
-        if (!is_null($this->zipkinService->getRootSpan())) {
-            $this->zipkinService->setRootSpanStatusCode($response->getStatusCode())->closeSpan();
+        if (!is_null(Zipkin::getRootSpan())) {
+            Zipkin::setRootSpanStatusCode($response->getStatusCode())->closeSpan();
         }
 
     }
