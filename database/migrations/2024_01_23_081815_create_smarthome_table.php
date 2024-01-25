@@ -15,7 +15,7 @@ return new class extends Migration
             CREATE TABLE smarthomes (
                 id UUID PRIMARY KEY,
                 description TEXT,
-                attributes JSONB,
+                properties JSONB,
                 created_at TIMESTAMP(6),
                 updated_at TIMESTAMP(6)
             );
